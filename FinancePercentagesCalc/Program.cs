@@ -24,6 +24,7 @@ switch (inputCompoundFrequency)
 {
     case "2":
         frequency = "1";
+        break;
 }
 var apy = Math.Pow(1 + interestRate / 365, 365) - 1;
 Console.WriteLine(apy);
