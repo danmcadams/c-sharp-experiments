@@ -5,9 +5,10 @@ Console.WriteLine("A console application that calculates and displays the growth
 Console.WriteLine();
 
 var inputStartingBalance = Calculator.PromptForInput("Starting Balance (in us dollars): $");
-var inputMonths = Calculator.PromptForInput("Months: ");
+var inputMonths = Calculator.PromptForInput("Account age (in months): ");
 var inputInterestRate = Calculator.PromptForInput("Annual rate of return (percentage): ");
 var inputMonthlyContribution = Calculator.PromptForInput("Monthly Contribution: $");
+var inputCompoundFrequency = Calculator.PromptForInput("Compound Frequency (1=Daily, 2=Monthly, 3=Yearly): ");
 
 double.TryParse(inputStartingBalance, out var startAmount);
 int.TryParse(inputMonths, out var months);
@@ -18,7 +19,15 @@ interestRate /= 100;
 double.TryParse(inputMonthlyContribution, out var monthlyContribution);
 var currentBalance = startAmount;
 
-
+var frequency = "1";
+switch (inputCompoundFrequency)
+{
+    case "2":
+        frequency = "1";
+}
+var apy = Math.Pow(1 + interestRate / 365, 365) - 1;
+Console.WriteLine(apy);
+Environment.Exit(0);
 
 var monthlyBreakdown = new List<Period>();
 for (var month = 1; month <= months; month++)
@@ -27,7 +36,7 @@ for (var month = 1; month <= months; month++)
     // AI generated ------
     int daysInMonth = DateTime.DaysInMonth(DateTime.Now.Year, ((DateTime.Now.Month - 1 + month - 1) % 12) + 1);
     // ---------
-    var apy = Math.Pow(1 + interestRate / daysInMonth, daysInMonth) - 1;
+    // var apy = Math.Pow(1 + interestRate / daysInMonth, daysInMonth) - 1;
     var holdValue = currentBalance + (currentBalance * apy); // just for debugging
     
     for (var d = 0; d < daysInMonth; d++)
