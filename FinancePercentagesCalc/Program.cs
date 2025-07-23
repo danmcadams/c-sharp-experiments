@@ -2,9 +2,7 @@
 
 using FinancePercentagesCalc;
 
-int code = ConsoleUI.Run();
-
-Environment.Exit(code);
+ConsoleUI.Run();
 // var currentBalance = startAmount;
 // Console.WriteLine(compoundFrequency);
 // var apy = Math.Pow(1 + interestRate / 365, 365) - 1;
