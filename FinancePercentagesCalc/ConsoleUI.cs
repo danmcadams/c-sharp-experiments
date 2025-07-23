@@ -1,10 +1,81 @@
+using System.ComponentModel;
+
 namespace FinancePercentagesCalc;
+
+internal enum MenuOptions
+{
+    [Description("APY Calculator")]
+    APYCalculator,
+    [Description("Savings Calculator")]
+    SavingsCalculator,
+    [Description("Another Option")]
+    AnotherOption,
+}
 
 public class ConsoleUI
 {
+    private static void Clear()
+    {
+        Console.Clear();
+    }
+    
+    private static string GetMenuOptionLabel(MenuOptions option)
+    {
+        var type = typeof(MenuOptions);
+        var memInfo = type.GetMember(option.ToString());
+        var attributes = memInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
+        return attributes.Length > 0 ? ((DescriptionAttribute)attributes[0]).Description : option.ToString();
+    }
+    
     public static int Run()
     {
-        return APYCalculator();
+        var showMenu = true;
+        
+        while (showMenu)
+        {
+            Clear();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("----------------------");
+            Console.WriteLine("$$ Money Calculator $$");
+            Console.WriteLine("----------------------");
+            Console.ResetColor();
+            Console.WriteLine();
+            
+            // set Exit option
+            var numOptions = Enum.GetValues<MenuOptions>().Length;
+            var exitOption = numOptions + 1;
+            
+            // print options
+            foreach (MenuOptions option in Enum.GetValues<MenuOptions>())
+            {
+                Console.WriteLine($"[{(int) option + 1}] {GetMenuOptionLabel(option)}");
+            }
+            Console.WriteLine($"[{(exitOption)}] Exit");
+
+            PrintBreak();
+            
+            
+            var key = PromptForKeyPress("Please make a selection ");
+            if (!int.TryParse(key.ToString(), out int selection) || selection < 1 || selection > exitOption)
+                continue;
+            
+            if (selection == exitOption)
+            {
+                showMenu = false;
+                continue;
+            }
+
+            var action = (MenuOptions)(selection - 1) switch
+            {
+                MenuOptions.APYCalculator => (Func<int>)APYCalculator,
+                MenuOptions.SavingsCalculator => (Func<int>)SavingsCalculator,
+                _ => () => 0
+            };
+            Clear();
+            action();
+        }
+
+        return 0;
     }
 
     private static int APYCalculator()
@@ -25,17 +96,17 @@ public class ConsoleUI
                 CompoundFrequency.Monthly => Calculator.CalculateAPY(ageOfAccount, interestRate),
                 _ => Calculator.CalculateAPY(365, interestRate)
             };
-            var apyPercentage = Math.Round(apy * 100, 2);
+            var apyPercentage = Math.Round(apy * 100, 4);
 
             Console.BackgroundColor = ConsoleColor.Green;
             Console.ForegroundColor = ConsoleColor.Black;
             Console.WriteLine(apyPercentage + "%");
             Console.ResetColor();
 
-            var key = PromptForKeyPress("Press almost any key to exit. (press R to run again)");
-            if (!(new[] { 'R', 'r' }.Contains(key))) return 0;
+            var key = PromptForKeyPress("Run Again? (y/n) ");
+            if (!(new[] { 'Y', 'y' }.Contains(key))) return -1;
 
-            Console.Clear();
+            Console.WriteLine("\n");
         }
     }
 
@@ -59,17 +130,16 @@ public class ConsoleUI
             CompoundFrequency.Monthly => Calculator.CalculateAPY(ageOfAccount, interestRate),
             _ => Calculator.CalculateAPY(365, interestRate)
         };
-        var apyPercentage = Math.Round(apy * 100, 2);
+        var apyPercentage = Math.Round(apy * 100, 4);
 
         Console.BackgroundColor = ConsoleColor.Green;
         Console.ForegroundColor = ConsoleColor.Black;
         Console.WriteLine(apyPercentage + "%");
         Console.ResetColor();
-
-        Console.WriteLine("Press any key to exit.");
-        Console.ReadKey();
+        
+        PromptForKeyPress("Press any key to exit");
         // no errors 
-        return 0;
+        return -1;
     }
     
     public static T PromptForInput<T>(string prompt, T defaultValue)
@@ -113,6 +183,14 @@ public class ConsoleUI
             var end = p.EndingBalance.ToString("C2").PadLeft(18);
 
             Console.WriteLine($"{period}{start}{interestEarned}{end}");
+        }
+    }
+
+    private static void PrintBreak(int numBreaks = 1)
+    {
+        for (var i = 0; i < numBreaks; i++)
+        {
+            Console.WriteLine();
         }
     }
 }
