@@ -4,96 +4,129 @@ namespace FinancePercentagesCalc;
 
 internal enum MenuOptions
 {
-    [Description("APY Calculator")]
-    APYCalculator,
-    [Description("Savings Calculator")]
-    SavingsCalculator,
-    [Description("Another Option")]
-    AnotherOption,
+    [Description("APY Calculator")] APYCalculator,
+    [Description("APR Calculator")] APRCalculator,
+    [Description("Savings Calculator")] SavingsCalculator,
 }
 
 public class ConsoleUI
 {
-    private static void Clear()
+    private static int _exitOption;
+
+    private static void Setup()
     {
-        Console.Clear();
+        _exitOption = Enum.GetValues<MenuOptions>().Length + 1;
     }
-    
-    private static string GetMenuOptionLabel(MenuOptions option)
+
+    public static void Run()
     {
-        var type = typeof(MenuOptions);
-        var memInfo = type.GetMember(option.ToString());
-        var attributes = memInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
-        return attributes.Length > 0 ? ((DescriptionAttribute)attributes[0]).Description : option.ToString();
-    }
-    
-    public static int Run()
-    {
+        Setup();
         var showMenu = true;
-        
+
         while (showMenu)
         {
-            Clear();
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("----------------------");
-            Console.WriteLine("$$ Money Calculator $$");
-            Console.WriteLine("----------------------");
-            Console.ResetColor();
-            Console.WriteLine();
-            
-            // set Exit option
-            var numOptions = Enum.GetValues<MenuOptions>().Length;
-            var exitOption = numOptions + 1;
-            
-            // print options
-            foreach (MenuOptions option in Enum.GetValues<MenuOptions>())
-            {
-                Console.WriteLine($"[{(int) option + 1}] {GetMenuOptionLabel(option)}");
-            }
-            Console.WriteLine($"[{(exitOption)}] Exit");
+            ShowMenuHeader();
+            PrintMenuOptions();
+            Break();
 
-            PrintBreak();
-            
-            
+            // make selection
             var key = PromptForKeyPress("Please make a selection ");
-            if (!int.TryParse(key.ToString(), out int selection) || selection < 1 || selection > exitOption)
+            if (!int.TryParse(key.ToString(), out int selection) || !IsValidSelection(selection))
                 continue;
-            
-            if (selection == exitOption)
+
+            if (selection == _exitOption)
             {
+                Break();
+                Console.WriteLine("Goodbye.");
                 showMenu = false;
                 continue;
             }
 
             var action = (MenuOptions)(selection - 1) switch
             {
-                MenuOptions.APYCalculator => (Func<int>)APYCalculator,
-                MenuOptions.SavingsCalculator => (Func<int>)SavingsCalculator,
-                _ => () => 0
+                MenuOptions.APYCalculator => (Action)APYCalculator,
+                MenuOptions.SavingsCalculator => (Action)SavingsCalculator,
+                _ => (Action)delegate { }
             };
             Clear();
             action();
         }
-
-        return 0;
     }
 
-    private static int APYCalculator()
+    private static bool IsValidSelection(int selection)
+    {
+        return selection >= 1 && selection <= _exitOption;
+    }
+
+    private static void PrintMenuOptions()
+    {
+        foreach (var option in Enum.GetValues<MenuOptions>())
+        {
+            Console.WriteLine($"[{(int)option + 1}] {GetMenuOptionLabel(option)}");
+        }
+
+        Console.WriteLine($"[{_exitOption}] Exit");
+    }
+
+    private static void ShowMenuHeader()
+    {
+        Clear();
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("----------------------");
+        Console.WriteLine("$$ Money Calculator $$");
+        Console.WriteLine("----------------------");
+        Console.ResetColor();
+        Console.WriteLine();
+    }
+
+    private static void APYCalculator()
     {
         while (true)
         {
             Console.WriteLine("------------ APY Calculator ------------");
 
-            var interestRate = ConsoleUI.PromptForInput<double>("Annual rate of return (percentage): ", 0.0);
-            var ageOfAccount = PromptForInput<int>("Age of account in months (default 12): ", 12);
-            var inputCompoundFrequency = ConsoleUI.PromptForInput<int>("Compound Frequency [1=Daily (default), 2=Monthly, 3=Yearly]: ", 1);
+            var interestRate = PromptForInput<double>("Annual rate of return (percentage): ", 0.0);
+            var ageOfAccountInMonths = PromptForInput<int>("Age of account in months (default 12): ", 12);
+            var inputCompoundFrequency = PromptForInput<int>("Compound Frequency [1=Daily (default), 2=Monthly, 3=Yearly]: ", 1);
+            var compoundFrequency = (CompoundFrequency)inputCompoundFrequency;
+
+            interestRate /= 100;
+            var apyPercentage =
+                Calculator.CalculateAPYPercentage(compoundFrequency, ageOfAccountInMonths, interestRate);
+
+            Break();
+            Console.WriteLine($"APY: {apyPercentage}%");
+            Console.WriteLine(
+                $"A {interestRate * 100}% interest rate, compounded {compoundFrequency.ToString().ToLower()} for {ageOfAccountInMonths} months, yields a return of {apyPercentage}%");
+
+            var shouldReRun = AskYesNoQuestion("Run Again? (y/n) ");
+            if (!shouldReRun) return;
+
+            Console.WriteLine("\n");
+        }
+    }
+
+    private static void SavingsCalculator()
+    {
+        while (true)
+        {
+            Console.WriteLine("------------ Savings Calculator ------------");
+            Console.WriteLine(
+                "A console application that calculates and displays the growth of a savings account with monthly contributions and daily-compounded interest");
+            Console.WriteLine();
+
+            var startAmount = PromptForInput<double>("Starting Balance (in us dollars): $", 0);
+            var monthlyContribution = PromptForInput<double>("Monthly Contribution: $", 0);
+            var interestRate = PromptForInput<double>("Annual rate of return (percentage): ", 0.0);
+            var ageOfAccountInMonths = PromptForInput<int>("Age of account in months (default 12): ", 12);
+            var inputCompoundFrequency = PromptForInput<int>("Compound Frequency [1=Daily (default), 2=Monthly, 3=Yearly]: ", 1);
             var compoundFrequency = (CompoundFrequency)inputCompoundFrequency;
 
             interestRate /= 100;
             var apy = compoundFrequency switch
             {
-                CompoundFrequency.Yearly => Calculator.CalculateAPY(ageOfAccount / 12, interestRate),
-                CompoundFrequency.Monthly => Calculator.CalculateAPY(ageOfAccount, interestRate),
+                CompoundFrequency.Yearly => Calculator.CalculateAPY(ageOfAccountInMonths / 12, interestRate),
+                CompoundFrequency.Monthly => Calculator.CalculateAPY(ageOfAccountInMonths, interestRate),
                 _ => Calculator.CalculateAPY(365, interestRate)
             };
             var apyPercentage = Math.Round(apy * 100, 4);
@@ -102,47 +135,76 @@ public class ConsoleUI
             Console.ForegroundColor = ConsoleColor.Black;
             Console.WriteLine(apyPercentage + "%");
             Console.ResetColor();
+            var currentBalance = startAmount;
+            Console.WriteLine(compoundFrequency);
 
-            var key = PromptForKeyPress("Run Again? (y/n) ");
-            if (!(new[] { 'Y', 'y' }.Contains(key))) return -1;
+            var periods = new List<Period>();
+            for (var month = 1; month <= ageOfAccountInMonths; month++)
+            {
+                var monthStart = currentBalance;
+                // AI generated ------
+                int daysInMonth =
+                    DateTime.DaysInMonth(DateTime.Now.Year, ((DateTime.Now.Month - 1 + month - 1) % 12) + 1);
+                // ---------
+                // var apy = Math.Pow(1 + interestRate / daysInMonth, daysInMonth) - 1;
+                var holdValue = currentBalance + (currentBalance * apy); // just for debugging
+
+                for (var d = 0; d < daysInMonth; d++)
+                {
+                    var dailyInterestInDollars = (currentBalance * interestRate) / 365;
+                    currentBalance += dailyInterestInDollars;
+                }
+
+                var interestForMonth = currentBalance - monthStart;
+                currentBalance += monthlyContribution;
+
+                periods.Add(
+                    new Period
+                    {
+                        Month = month,
+                        StartingBalance = monthStart,
+                        EndingBalance = currentBalance,
+                        InterestEarned = interestForMonth,
+                    });
+            }
+
+            double totalInterestEarned = currentBalance - ((monthlyContribution * ageOfAccountInMonths) + startAmount);
+
+            Console.WriteLine();
+            Console.WriteLine($"Ending Balance: {(currentBalance):C2}");
+            Console.WriteLine($"Interest Earned: {(totalInterestEarned):C2}");
+
+            var shouldPrintBreakdown = PromptForBreakdown();
+            if (shouldPrintBreakdown) PrintBreakdownToConsole(periods);
+
+            var shouldReRun = AskYesNoQuestion("Run Again? (y/n) ");
+            if (!shouldReRun) return;
 
             Console.WriteLine("\n");
         }
     }
 
-    private static int SavingsCalculator()
+    private static string GetMenuOptionLabel(MenuOptions option)
     {
-        Console.WriteLine("------------ Savings Calculator ------------");
-        Console.WriteLine("A console application that calculates and displays the growth of a savings account with monthly contributions and daily-compounded interest");
-        Console.WriteLine();
-
-        var startAmount = ConsoleUI.PromptForInput<double>("Starting Balance (in us dollars): $", 0);
-        var interestRate = ConsoleUI.PromptForInput<double>("Annual rate of return (percentage): ", 0.0);
-        var monthlyContribution = ConsoleUI.PromptForInput<double>("Monthly Contribution: $", 0);
-        var ageOfAccount = PromptForInput<int>("Age of account in months (default 12): ", 12);
-        var inputCompoundFrequency = ConsoleUI.PromptForInput<int>("Compound Frequency [1=Daily (default), 2=Monthly, 3=Yearly]: ", 1);
-        var compoundFrequency = (CompoundFrequency)inputCompoundFrequency;
-
-        interestRate /= 100;
-        var apy = compoundFrequency switch
-        {
-            CompoundFrequency.Yearly => Calculator.CalculateAPY(ageOfAccount / 12, interestRate),
-            CompoundFrequency.Monthly => Calculator.CalculateAPY(ageOfAccount, interestRate),
-            _ => Calculator.CalculateAPY(365, interestRate)
-        };
-        var apyPercentage = Math.Round(apy * 100, 4);
-
-        Console.BackgroundColor = ConsoleColor.Green;
-        Console.ForegroundColor = ConsoleColor.Black;
-        Console.WriteLine(apyPercentage + "%");
-        Console.ResetColor();
-        
-        PromptForKeyPress("Press any key to exit");
-        // no errors 
-        return -1;
+        var type = typeof(MenuOptions);
+        var memInfo = type.GetMember(option.ToString());
+        var attributes = memInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
+        return attributes.Length > 0 ? ((DescriptionAttribute)attributes[0]).Description : option.ToString();
     }
     
-    public static T PromptForInput<T>(string prompt, T defaultValue)
+    private static bool AskYesNoQuestion(string prompt)
+    {
+        var key = PromptForKeyPress(prompt);
+        return new[] { 'Y', 'y' }.Contains(key);
+    }
+
+    private static bool PromptForBreakdown()
+    {
+        Break();
+        return AskYesNoQuestion("Would you like to see a complete breakdown? (y/n) ");
+    }
+
+    private static T PromptForInput<T>(string prompt, T defaultValue)
     {
         Console.Write(prompt);
         var input = Console.ReadLine();
@@ -162,13 +224,13 @@ public class ConsoleUI
         }
     }
 
-    public static char PromptForKeyPress(string prompt, bool intercept = true)
+    private static char PromptForKeyPress(string prompt, bool intercept = true)
     {
         Console.Write(prompt);
         return Console.ReadKey(intercept: intercept).KeyChar;
     }
 
-    public static void PrintBreakdownToConsole(List<Period> periods)
+    private static void PrintBreakdownToConsole(List<Period> periods)
     {
         Console.WriteLine();
         Console.WriteLine("Month      Starting Balance      Interest Earned      Ending Balance");
@@ -186,7 +248,12 @@ public class ConsoleUI
         }
     }
 
-    private static void PrintBreak(int numBreaks = 1)
+    private static void Clear()
+    {
+        Console.Clear();
+    }
+
+    private static void Break(int numBreaks = 1)
     {
         for (var i = 0; i < numBreaks; i++)
         {
