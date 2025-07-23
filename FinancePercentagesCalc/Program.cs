@@ -1,23 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("------------ Savings Calculator ------------");
-Console.WriteLine("A console application that calculates and displays the growth of a savings account with monthly contributions and daily-compounded interest");
-Console.WriteLine();
 
-var startAmount = ConsoleUI.PromptForInput<double>("Starting Balance (in us dollars): $", 0);
-var interestRate = ConsoleUI.PromptForInput<double>("Annual rate of return (percentage): ", 0.0);
-var monthlyContribution = ConsoleUI.PromptForInput<double>("Monthly Contribution: $", 0);
-var inputCompoundFrequency = ConsoleUI.PromptForInput<int>("Compound Frequency [1=Daily (default), 2=Monthly, 3=Yearly]: ", 1);
+using FinancePercentagesCalc;
 
-var compoundFrequency = (CompoundFrequency) inputCompoundFrequency switch
-{
-    CompoundFrequency.Monthly => ConsoleUI.PromptForInput<int>("Account age in months (default 12): ", 12),
-    CompoundFrequency.Yearly => ConsoleUI.PromptForInput<int>("Account age in years (default 1): ", 1),
-    _ => 365
-};
+int code = ConsoleUI.Run();
 
-Console.WriteLine(compoundFrequency);
-Environment.Exit(0);
-// interestRate /= 100;
+Environment.Exit(code);
 // var currentBalance = startAmount;
 // Console.WriteLine(compoundFrequency);
 // var apy = Math.Pow(1 + interestRate / 365, 365) - 1;
@@ -64,63 +51,4 @@ Environment.Exit(0);
 //     ConsoleUI.PrintBreakdownToConsole(periods);
 // }
 
-public enum CompoundFrequency
-{
-    Daily = 1,
-    Monthly = 2,
-    Yearly = 3,
-}
 
-public readonly struct Period
-{
-    public int Month { get; init; }
-    public double StartingBalance { get; init; }
-    public double EndingBalance { get; init; }
-    public double InterestEarned { get; init; }
-
-    public string GetMonthText()
-    {
-        return Month.ToString();
-    }
-}
-
-public class ConsoleUI
-{
-    public static T PromptForInput<T>(string prompt, T defaultValue)
-    {
-        Console.Write(prompt);
-        var input = Console.ReadLine();
-
-        if (string.IsNullOrEmpty(input))
-        {
-            return defaultValue;
-        }
-
-        try
-        {
-            return (T)Convert.ChangeType(input, typeof(T));
-        }
-        catch
-        {
-            return defaultValue;
-        }
-    }
-
-    public static void PrintBreakdownToConsole(List<Period> periods)
-    {
-        Console.WriteLine();
-        Console.WriteLine("Month      Starting Balance      Interest Earned      Ending Balance");
-        Console.WriteLine("====================================================================");
-
-        foreach (var p in periods)
-        {
-            var period = p.Month.ToString().PadRight(11);
-            var start = p.StartingBalance.ToString("C2").PadLeft(16);
-            // var start = p.StartingBalance.ToString("C2").PadRight(22);
-            var interestEarned = p.InterestEarned.ToString("C2").PadLeft(21);
-            var end = p.EndingBalance.ToString("C2").PadLeft(18);
-
-            Console.WriteLine($"{period}{start}{interestEarned}{end}");
-        }
-    }
-}
