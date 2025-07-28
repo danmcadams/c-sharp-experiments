@@ -3,6 +3,9 @@
 using FinancePercentagesCalc;
 
 ConsoleUI.Run();
+Console.WriteLine();
+Console.WriteLine("Goodbye.");
+Console.WriteLine();
 
 
 
