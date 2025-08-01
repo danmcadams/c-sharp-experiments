@@ -7,9 +7,10 @@ internal enum MenuOptions
     [Description("APY Calculator")] APYCalculator,
     // [Description("APR Calculator")] APRCalculator,
     [Description("Savings Calculator")] SavingsCalculator,
+    AnotherSelection,
+    [Description("And Another")] AndAnother,
     [Description("Exit")] Exit,
 }
-
 public class ConsoleUI
 {
     public static void Run()
@@ -225,14 +226,19 @@ public class ConsoleUI
         Console.WriteLine("Month      Starting Balance      Interest Earned      Ending Balance");
         Console.WriteLine("====================================================================");
 
+        var row = 0;
         foreach (var p in periods)
         {
+            row++;
+            if (row % 2 == 0) Console.BackgroundColor = ConsoleColor.DarkGray;
+            
             var period = p.Month.ToString().PadRight(11);
             var start = p.StartingBalance.ToString("C2").PadLeft(16);
             var interestEarned = p.InterestEarned.ToString("C2").PadLeft(21);
             var end = p.EndingBalance.ToString("C2").PadLeft(20);
 
             Console.WriteLine($"{period}{start}{interestEarned}{end}");
+            Console.ResetColor();
         }
     }
 
