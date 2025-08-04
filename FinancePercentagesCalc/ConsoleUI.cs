@@ -5,7 +5,6 @@ namespace FinancePercentagesCalc;
 internal enum MenuOptions
 {
     [Description("APY Calculator")] APYCalculator,
-    // [Description("APR Calculator")] APRCalculator,
     [Description("Savings Calculator")] SavingsCalculator,
     AnotherSelection,
     [Description("And Another")] AndAnother,
@@ -120,16 +119,16 @@ public class ConsoleUI
             for (var month = 1; month <= ageOfAccountInMonths; month++)
             {
                 var monthStart = currentBalance;
-                // AI generated ------
-                var daysInMonth =
-                    DateTime.DaysInMonth(DateTime.Now.Year, ((DateTime.Now.Month - 1 + month - 1) % 12) + 1);
+
+                var currentMonth = ((DateTime.Now.Month - 1 + month - 1) % 12) + 1;
+                var daysInMonth = DateTime.DaysInMonth(DateTime.Now.Year, currentMonth);
 
                 for (var d = 0; d < daysInMonth; d++)
                 {
                     var dailyInterestInDollars = (currentBalance * interestRate) / 365;
                     currentBalance += dailyInterestInDollars;
                 }
-                // if interestForMonth is calculated after currentBalance, make sure to subject monthlyContribution
+                // if interestForMonth is calculated after currentBalance, make sure to subtract the monthlyContribution
                 currentBalance += monthlyContribution;
                 totalContributions += monthlyContribution;
 
@@ -138,6 +137,7 @@ public class ConsoleUI
                     {
                         Month = month,
                         StartingBalance = monthStart,
+                        Contribution = monthlyContribution,
                         EndingBalance = currentBalance,
                         InterestEarned = currentBalance - monthlyContribution - monthStart,
                     });
@@ -169,8 +169,7 @@ public class ConsoleUI
             Break();
             var shouldReRun = AskYesNoQuestion("Run Again? (y/n) ");
             if (!shouldReRun) return;
-
-            Console.WriteLine("\n");
+            Clear();
         }
     }
 
@@ -223,8 +222,9 @@ public class ConsoleUI
     private static void PrintBreakdownToConsole(List<Period> periods)
     {
         Console.WriteLine();
-        Console.WriteLine("Month      Starting Balance      Interest Earned      Ending Balance");
-        Console.WriteLine("====================================================================");
+        var header = "Month     Starting Balance     Interest Earned     Ending Balance";
+        Console.WriteLine(header);
+        Console.WriteLine(new string('=', header.Length));
 
         var row = 0;
         foreach (var p in periods)
@@ -232,10 +232,10 @@ public class ConsoleUI
             row++;
             if (row % 2 == 0) Console.BackgroundColor = ConsoleColor.DarkGray;
             
-            var period = p.Month.ToString().PadRight(11);
-            var start = p.StartingBalance.ToString("C2").PadLeft(16);
-            var interestEarned = p.InterestEarned.ToString("C2").PadLeft(21);
-            var end = p.EndingBalance.ToString("C2").PadLeft(20);
+            var period = p.Month.ToString().PadLeft(5);
+            var start = p.StartingBalance.ToString("C2").PadLeft(21);
+            var interestEarned = p.InterestEarned.ToString("C2").PadLeft(20);
+            var end = p.EndingBalance.ToString("C2").PadLeft(19);
 
             Console.WriteLine($"{period}{start}{interestEarned}{end}");
             Console.ResetColor();
