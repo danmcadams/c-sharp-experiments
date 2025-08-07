@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 
 namespace FinancePercentagesCalc;
 
@@ -6,13 +7,28 @@ internal enum MenuOptions
 {
     [Description("APY Calculator")] APYCalculator,
     [Description("Savings Calculator")] SavingsCalculator,
-    AnotherSelection,
-    [Description("And Another")] AndAnother,
+    [Description("View Previous Savings Calculations")] SavingsBreakdowns,
     [Description("Exit")] Exit,
 }
+
+internal class SavingsBreakdown
+{
+    public int NumMonths { get; init; }
+    public double APY { get; init; }
+    public double StartAmount { get; init; }
+    public double Contributions { get; init; }
+    public double InterestEarned { get; init; }
+    public double FinalBalance { get; init; }
+    public List<Period> Periods { get; init; } = [];
+}
+
 public class ConsoleUI
 {
-    public static void Run()
+    private List<SavingsBreakdown> SavingsBreakdowns { get; init; } = [];
+
+    private static readonly char[] YesOptions = ['Y', 'y'];
+
+    public void Run()
     {
         while (true)
         {
@@ -21,8 +37,8 @@ public class ConsoleUI
             Break();
 
             // make selection
-            var key = PromptForKeyPress("Please make a selection ");
-            if (!int.TryParse(key.ToString(), out int selection) || !IsValidSelection(selection))
+            var key = PromptForKeyPress("Please make a selection");
+            if (!int.TryParse(key.ToString(), out var selection) || !IsValidSelection(selection))
                 continue;
 
             if (MenuOptions.Exit == (MenuOptions)selection - 1) return;
@@ -31,6 +47,7 @@ public class ConsoleUI
             {
                 MenuOptions.APYCalculator => (Action)APYCalculator,
                 MenuOptions.SavingsCalculator => (Action)SavingsCalculator,
+                MenuOptions.SavingsBreakdowns => (Action)PrintBreakdowns,
                 _ => (Action)delegate { },
             };
             action();
@@ -60,6 +77,39 @@ public class ConsoleUI
         Console.ResetColor();
     }
 
+    private void PrintBreakdowns()
+    {
+        Clear();
+        foreach (var breakdown in SavingsBreakdowns)
+        {
+            PrintSavingsBreakdown(breakdown);
+        }
+        PromptForInput("Press any key to continue", "");
+    }
+    
+    private static void PrintSavingsBreakdown(SavingsBreakdown breakdown)
+    {
+        Console.WriteLine("==== Savings Breakdown ====");
+        Console.WriteLine($"APY {breakdown.APY}%");
+        Console.WriteLine($"Months: {breakdown.NumMonths}");
+        Console.WriteLine($"Starting Balance: {breakdown.StartAmount:C2}");
+        Console.WriteLine($"Contributions: {breakdown.Contributions:C2}");
+        Console.WriteLine($"Interest Earned: {breakdown.InterestEarned:C2}");
+        Console.WriteLine($"Final Balance: {breakdown.FinalBalance:C2}");
+        Console.WriteLine();
+
+        const string header = "Month | Start Balance | Contribution | Interest Earned | End Balance";
+        Console.WriteLine(header);
+        Console.WriteLine(new string('-', header.Length));
+
+        foreach (var period in breakdown.Periods)
+        {
+            Console.WriteLine(
+                $"{period.Month,5} | {period.StartingBalance,13:C2} | {period.Contribution,12:C2} | {period.InterestEarned,15:C2} | {period.EndingBalance,11:C2}");
+        }
+        Console.WriteLine();
+    }
+    
     private static void APYCalculator()
     {
         Clear();
@@ -82,14 +132,14 @@ public class ConsoleUI
             Console.WriteLine(
                 $"A {interestRate * 100}% interest rate, compounded {compoundFrequency.ToString().ToLower()} for {ageOfAccountInMonths} months, yields a return of {apyPercentage}%");
 
-            var shouldReRun = AskYesNoQuestion("Run Again? (y/n) ");
+            var shouldReRun = AskYesNoQuestion("Run Again? (y/n)");
             if (!shouldReRun) return;
 
             Console.WriteLine("\n");
         }
     }
 
-    private static void SavingsCalculator()
+    private void SavingsCalculator()
     {
         Clear();
         while (true)
@@ -101,7 +151,7 @@ public class ConsoleUI
             var targetApy = PromptForInput<double>("Target APY (percentage): ", 0.0);
             var ageOfAccountInMonths = PromptForInput<int>("Age of account in months (default 12): ", 12);
             var inputCompoundFrequency =
-                PromptForInput<int>("Compound Frequency [1=Daily (default), 2=Monthly, 3=Yearly]: ", 1);
+                PromptForInput("Compound Frequency [1=Daily (default), 2=Monthly, 3=Yearly]: ", 1);
             var compoundFrequency = (CompoundFrequency)inputCompoundFrequency;
 
             targetApy /= 100;
@@ -142,9 +192,20 @@ public class ConsoleUI
                         InterestEarned = currentBalance - monthlyContribution - monthStart,
                     });
             }
+            var totalInterestEarned = currentBalance - ((monthlyContribution * ageOfAccountInMonths) + startAmount);
 
-            double totalInterestEarned = currentBalance - ((monthlyContribution * ageOfAccountInMonths) + startAmount);
-
+            var breakdown = new SavingsBreakdown
+            {
+                NumMonths = ageOfAccountInMonths,
+                APY = targetApy * 100,
+                StartAmount = startAmount,
+                Contributions = totalContributions,
+                InterestEarned = totalInterestEarned,
+                FinalBalance = currentBalance,
+                Periods = periods
+            };
+            SavingsBreakdowns.Add(breakdown);
+            
             Console.WriteLine();
             // Console.WriteLine($"Compound Frequency: {compoundFrequency}");
             Console.WriteLine($"Actual APR: {Math.Round(interestRate * 100, 6)}%");
@@ -154,20 +215,12 @@ public class ConsoleUI
             var shouldPrintBreakdown = PromptForBreakdown();
             if (shouldPrintBreakdown)
             {
-                Break();
-                PrintBreakdownToConsole(periods);
-                Break();
-                Console.WriteLine($"Starting Balance: {startAmount:C2}");
-                Console.WriteLine($"Contributions: {totalContributions:C2}");
-                Console.WriteLine($"Interest Earned: {totalInterestEarned:C2}");
-                // Console.ForegroundColor = ConsoleColor.Green;
-                // Console.BackgroundColor = ConsoleColor.Black;
-                Console.WriteLine($"Ending Balance: {currentBalance:C2}");
-                Console.ResetColor();
+                Break(2);
+                PrintSavingsBreakdown(breakdown);
             }
 
             Break();
-            var shouldReRun = AskYesNoQuestion("Run Again? (y/n) ");
+            var shouldReRun = AskYesNoQuestion("Run Again? (y/n)");
             if (!shouldReRun) return;
             Clear();
         }
@@ -184,13 +237,13 @@ public class ConsoleUI
     private static bool AskYesNoQuestion(string prompt)
     {
         var key = PromptForKeyPress(prompt);
-        return new[] { 'Y', 'y' }.Contains(key);
+        return YesOptions.Contains(key);
     }
 
     private static bool PromptForBreakdown()
     {
         Break();
-        return AskYesNoQuestion("Would you like to see a complete breakdown? (y/n) ");
+        return AskYesNoQuestion("Would you like to see a complete breakdown? (y/n)");
     }
 
     private static T PromptForInput<T>(string prompt, T defaultValue)
@@ -222,7 +275,7 @@ public class ConsoleUI
     private static void PrintBreakdownToConsole(List<Period> periods)
     {
         Console.WriteLine();
-        var header = "Month     Starting Balance     Interest Earned     Ending Balance";
+        const string header = "Month     Starting Balance     Interest Earned     Ending Balance";
         Console.WriteLine(header);
         Console.WriteLine(new string('=', header.Length));
 
