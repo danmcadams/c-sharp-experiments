@@ -19,7 +19,10 @@ internal class SavingsBreakdown
     public double Contributions { get; init; }
     public double InterestEarned { get; init; }
     public double FinalBalance { get; init; }
+    public CompoundFrequency CompoundFrequency { get; init; }
     public List<Period> Periods { get; init; } = [];
+    public int RunNumber { get; init; }
+    public DateTime CalculationTime { get; init; }
 }
 
 public class ConsoleUI
@@ -89,9 +92,10 @@ public class ConsoleUI
     
     private static void PrintSavingsBreakdown(SavingsBreakdown breakdown)
     {
-        Console.WriteLine("==== Savings Breakdown ====");
+        Console.WriteLine($"==== Savings Breakdown #{breakdown.RunNumber} ({breakdown.CalculationTime:g}) ====");
         Console.WriteLine($"APY {breakdown.APY}%");
         Console.WriteLine($"Months: {breakdown.NumMonths}");
+        Console.WriteLine($"Compound Frequency: {breakdown.CompoundFrequency}");
         Console.WriteLine($"Starting Balance: {breakdown.StartAmount:C2}");
         Console.WriteLine($"Contributions: {breakdown.Contributions:C2}");
         Console.WriteLine($"Interest Earned: {breakdown.InterestEarned:C2}");
@@ -102,10 +106,15 @@ public class ConsoleUI
         Console.WriteLine(header);
         Console.WriteLine(new string('-', header.Length));
 
+        int row = 0;
         foreach (var period in breakdown.Periods)
         {
+            if (row % 2 == 1)
+                Console.BackgroundColor = ConsoleColor.DarkGray;
             Console.WriteLine(
                 $"{period.Month,5} | {period.StartingBalance,13:C2} | {period.Contribution,12:C2} | {period.InterestEarned,15:C2} | {period.EndingBalance,11:C2}");
+            Console.ResetColor();
+            row++;
         }
         Console.WriteLine();
     }
@@ -202,7 +211,10 @@ public class ConsoleUI
                 Contributions = totalContributions,
                 InterestEarned = totalInterestEarned,
                 FinalBalance = currentBalance,
-                Periods = periods
+                CompoundFrequency = compoundFrequency,
+                Periods = periods,
+                RunNumber = SavingsBreakdowns.Count + 1, 
+                CalculationTime = DateTime.Now
             };
             SavingsBreakdowns.Add(breakdown);
             
