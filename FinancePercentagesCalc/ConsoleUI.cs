@@ -11,24 +11,9 @@ internal enum MenuOptions
     [Description("Exit")] Exit,
 }
 
-internal class SavingsBreakdown
-{
-    public int NumMonths { get; init; }
-    public double APY { get; init; }
-    public double StartAmount { get; init; }
-    public double Contributions { get; init; }
-    public double InterestEarned { get; init; }
-    public double FinalBalance { get; init; }
-    public CompoundFrequency CompoundFrequency { get; init; }
-    public List<Period> Periods { get; init; } = [];
-    public int RunNumber { get; init; }
-    public DateTime CalculationTime { get; init; }
-}
-
 public class ConsoleUI
 {
-    private List<SavingsBreakdown> SavingsBreakdowns { get; init; } = [];
-
+    private List<SavingsSummary> SavingsBreakdowns { get; } = [];
     private static readonly char[] YesOptions = ['Y', 'y'];
 
     public void Run()
@@ -39,7 +24,6 @@ public class ConsoleUI
             PrintMenuOptions();
             Break();
 
-            // make selection
             var key = PromptForKeyPress("Please make a selection");
             if (!int.TryParse(key.ToString(), out var selection) || !IsValidSelection(selection))
                 continue;
@@ -90,31 +74,34 @@ public class ConsoleUI
         PromptForInput("Press any key to continue", "");
     }
     
-    private static void PrintSavingsBreakdown(SavingsBreakdown breakdown)
+    private static void PrintSavingsBreakdown(SavingsSummary summary, bool printDetail = false)
     {
-        Console.WriteLine($"==== Savings Breakdown #{breakdown.RunNumber} ({breakdown.CalculationTime:g}) ====");
-        Console.WriteLine($"APY {breakdown.APY}%");
-        Console.WriteLine($"Months: {breakdown.NumMonths}");
-        Console.WriteLine($"Compound Frequency: {breakdown.CompoundFrequency}");
-        Console.WriteLine($"Starting Balance: {breakdown.StartAmount:C2}");
-        Console.WriteLine($"Contributions: {breakdown.Contributions:C2}");
-        Console.WriteLine($"Interest Earned: {breakdown.InterestEarned:C2}");
-        Console.WriteLine($"Final Balance: {breakdown.FinalBalance:C2}");
+        Console.WriteLine($"==== Savings Breakdown #{summary.RunNumber} ({summary.CalculationTime:g}) ====");
+        Console.WriteLine($"APY {summary.APY}%");
+        Console.WriteLine($"Months: {summary.NumMonths}");
+        Console.WriteLine($"Compound Frequency: {summary.CompoundFrequency}");
+        Console.WriteLine($"Starting Balance: {summary.StartAmount:C2}");
+        Console.WriteLine($"Contributions: {summary.Contributions:C2}");
+        Console.WriteLine($"Interest Earned: {summary.InterestEarned:C2}");
+        Console.WriteLine($"Final Balance: {summary.FinalBalance:C2}");
         Console.WriteLine();
 
-        const string header = "Month | Start Balance | Contribution | Interest Earned | End Balance";
-        Console.WriteLine(header);
-        Console.WriteLine(new string('-', header.Length));
-
-        int row = 0;
-        foreach (var period in breakdown.Periods)
+        if (printDetail)
         {
-            if (row % 2 == 1)
-                Console.BackgroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(
-                $"{period.Month,5} | {period.StartingBalance,13:C2} | {period.Contribution,12:C2} | {period.InterestEarned,15:C2} | {period.EndingBalance,11:C2}");
-            Console.ResetColor();
-            row++;
+            const string header = "Month | Start Balance | Contribution | Interest Earned | End Balance";
+            Console.WriteLine(header);
+            Console.WriteLine(new string('-', header.Length));
+
+            var row = 0;
+            foreach (var period in summary.Periods)
+            {
+                if (row % 2 == 1)
+                    Console.BackgroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine(
+                    $"{period.Month,5} | {period.StartingBalance,13:C2} | {period.Contribution,12:C2} | {period.InterestEarned,15:C2} | {period.EndingBalance,11:C2}");
+                Console.ResetColor();
+                row++;
+            }
         }
         Console.WriteLine();
     }
@@ -203,7 +190,7 @@ public class ConsoleUI
             }
             var totalInterestEarned = currentBalance - ((monthlyContribution * ageOfAccountInMonths) + startAmount);
 
-            var breakdown = new SavingsBreakdown
+            var breakdown = new SavingsSummary
             {
                 NumMonths = ageOfAccountInMonths,
                 APY = targetApy * 100,
@@ -228,7 +215,7 @@ public class ConsoleUI
             if (shouldPrintBreakdown)
             {
                 Break(2);
-                PrintSavingsBreakdown(breakdown);
+                PrintSavingsBreakdown(breakdown, printDetail: true);
             }
 
             Break();
@@ -282,29 +269,6 @@ public class ConsoleUI
     {
         Console.Write(prompt);
         return Console.ReadKey(intercept: intercept).KeyChar;
-    }
-
-    private static void PrintBreakdownToConsole(List<Period> periods)
-    {
-        Console.WriteLine();
-        const string header = "Month     Starting Balance     Interest Earned     Ending Balance";
-        Console.WriteLine(header);
-        Console.WriteLine(new string('=', header.Length));
-
-        var row = 0;
-        foreach (var p in periods)
-        {
-            row++;
-            if (row % 2 == 0) Console.BackgroundColor = ConsoleColor.DarkGray;
-            
-            var period = p.Month.ToString().PadLeft(5);
-            var start = p.StartingBalance.ToString("C2").PadLeft(21);
-            var interestEarned = p.InterestEarned.ToString("C2").PadLeft(20);
-            var end = p.EndingBalance.ToString("C2").PadLeft(19);
-
-            Console.WriteLine($"{period}{start}{interestEarned}{end}");
-            Console.ResetColor();
-        }
     }
 
     private static void Clear()
