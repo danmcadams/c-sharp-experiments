@@ -2,7 +2,9 @@
 
 using FinancePercentagesCalc;
 
-ConsoleUI.Run();
+var ui = new ConsoleUI();
+ui.Run();
+
 Console.WriteLine();
 Console.WriteLine("Goodbye.");
 Console.WriteLine();
