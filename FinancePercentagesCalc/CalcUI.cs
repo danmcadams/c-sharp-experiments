@@ -11,7 +11,7 @@ internal enum MenuOptions
     [Description("Exit")] Exit,
 }
 
-public class ConsoleUI
+public class CalcUI
 {
     private List<SavingsSummary> SavingsBreakdowns { get; } = [];
     private static readonly char[] YesOptions = ['Y', 'y'];
@@ -28,7 +28,15 @@ public class ConsoleUI
             if (!int.TryParse(key.ToString(), out var selection) || !IsValidSelection(selection))
                 continue;
 
-            if (MenuOptions.Exit == (MenuOptions)selection - 1) return;
+            if (MenuOptions.Exit == (MenuOptions)selection - 1)
+            {
+                Break();
+                if (!AskYesNoQuestion("Are you sure? (y/n)"))
+                {
+                    continue;
+                }
+                return;
+            }
 
             var action = (MenuOptions)(selection - 1) switch
             {
@@ -71,7 +79,7 @@ public class ConsoleUI
         {
             PrintSavingsBreakdown(breakdown);
         }
-        PromptForInput("Press any key to continue", "");
+        PromptForKeyPress("Press any key to continue");
     }
     
     private static void PrintSavingsBreakdown(SavingsSummary summary, bool printDetail = false)
